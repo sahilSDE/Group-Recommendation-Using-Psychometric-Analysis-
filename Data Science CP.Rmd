@@ -1,0 +1,170 @@
+---
+title: "DS CP"
+output: html_notebook
+---
+
+```{r}
+# Load the data
+data <- read.csv("BA_DS.csv")
+
+# Extract the features of interest
+data
+features <- data[, c("TL", "TT","TSD","L15")]
+# Determine the optimal number of clusters using the elbow method
+set.seed(123)
+wss <- (nrow(features)-1)*sum(apply(features,2,var))
+for (i in 1:15) wss[i] <- sum(kmeans(features, centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters", ylab="Within groups sum of squares")
+```
+```{r}
+#Make recommendations based on cluster assignments
+
+specific_PRN <- vector(mode = "character", length = 100)
+specific_PRN <- readline(prompt = "Enter your PRN: ")
+cluster_number <- km.out$cluster[data$PRN == specific_name]
+print(cluster_number)
+```
+```{r}
+names_in_cluster <- data[data$PRN != specific_PRN & km.out$cluster == cluster_number, ]
+
+# Print 3 names from the same cluster (excluding the specific name)
+print(head(names_in_cluster, 10))
+```
+```{r}
+#DBSCAN Algorithm
+library(dbscan)
+library(dplyr)
+
+# Read in data
+data <- read.csv("BA_DS.csv")
+
+# Specify the columns of interest
+columns_of_interest <- c("TL","TT","TSD","L15")
+
+# Filter data for specific name
+specific_PRN <- vector(mode = "character", length = 100)
+specific_PRN <- readline(prompt = "Enter your PRN: ")
+specific_data <- data %>% filter(PRN == specific_PRN)
+# Extract scores for specific individual
+specific_scores <- specific_data[, columns_of_interest]
+
+# Compute DBSCAN clustering on all data
+dbscan_results <- dbscan(data[, columns_of_interest], eps = 0.5, MinPts = 5)
+library(cluster)
+clusplot(data, dbscan_result$cluster, color = TRUE, shade = TRUE, labels = 2, lines = 0,xlab = "X", ylab = "Y")
+```
+
+
+```{r}
+# Extract cluster labels
+cluster_labels <- dbscan_results$cluster
+
+# Filter data for individuals in the same cluster as the specific individual
+similar_data <- data %>% filter(cluster_labels == cluster_labels[which(data$PRN == specific_PRN)])
+
+# Remove the specific individual from the list of similar individuals
+similar_data <- similar_data %>% filter(PRN != specific_PRN)
+print(head(similar_data,10))
+
+```
+```{r}
+#Hierarchial Clustering
+# Load the necessary libraries
+library(dplyr)
+library(factoextra)
+library(cluster)
+
+# Read in the data
+data <- read.csv("BA_DS.csv", header = TRUE)
+
+# Select the columns of interest
+cols_of_interest <- c("TL","TT","TSD","L15")
+
+# Scale the data
+data_scaled <- scale(data[, cols_of_interest])
+
+# Compute the distance matrix
+dist_matrix <- dist(data_scaled, method = "euclidean")
+
+# Perform hierarchical clustering
+hc <- hclust(dist_matrix, method = "ward.D2")
+plot(hc, hang = -1, cex = 0.6)
+```
+
+
+```{r}
+# Choose the specific individual
+specific_PRN <- vector(mode = "character", length = 100)
+specific_PRN <- readline(prompt = "Enter your PRN: ")
+
+# Find the index of the specific individual in the data
+specific_index <- which(data$PRN == specific_PRN)
+
+# Determine the cluster to which the specific individual belongs
+cluster_num <- cutree(hc, k = 5)[specific_index]
+
+# Find the indices of individuals in the same cluster as the specific individual
+cluster_indices <- which(cutree(hc, k = 5) == cluster_num)
+
+# Remove the specific individual from the cluster indices
+cluster_indices <- cluster_indices[cluster_indices != specific_PRN]
+
+# Compute the means of the columns of interest for the cluster
+means <- apply(data_scaled[cluster_indices, ], 2, mean)
+
+# Compute the distance between each individual in the cluster and the means
+distances <- apply(data_scaled[cluster_indices, cols_of_interest], 1, function(x) sum((x - means)^2))
+
+# Combine the distances with the indices and names of the individuals
+individuals_in_cluster <- data[cluster_indices, c("Name", cols_of_interest)]
+individuals_in_cluster$distance <- distances
+
+# Order the individuals by distance from the means
+recommended_individuals <- individuals_in_cluster[order(individuals_in_cluster$distance), ]
+
+# Show the top 5 recommended individuals
+head(recommended_individuals, 10)
+```
+
+```{r}
+#Model-Based Clutsering
+# load required packages
+library(mclust)
+
+# read data from CSV file
+data <- read.csv("BA_DS.csv")
+
+# select columns of interest
+columns_of_interest <- c("TL","TT","TSD","L15")
+
+# fit model-based clustering with default settings
+fit <- Mclust(data[, columns_of_interest])
+
+# get cluster assignments for each individual
+clusters <- fit$classification
+
+# get means of each cluster
+means <- fit$parameters$mean
+
+# find the cluster number for the specific name
+# Choose the specific individual
+specific_PRN <- vector(mode = "character", length = 100)
+specific_PRN <- readline(prompt = "Enter your PRN: ")
+cluster_number <- unique(clusters[data$Name == specific_name])
+
+# get names of individuals in the same cluster
+individuals_in_cluster <- data[which(fit$classification == cluster_num & data$PRN!= specific_PRN),]
+
+# calculate distance from means for selected columns
+means <- apply(individuals_in_cluster[, selected_cols], 2, mean)
+individuals_in_cluster$distance_from_means <- apply(individuals_in_cluster[, selected_cols], 1, function(x) sum((x - means)^2))
+
+# recommend 5 individuals who are closest to the specific name based on their scores
+recommended_individuals <- individuals_in_cluster[order(individuals_in_cluster$distance_from_means),][1:10, c("Name", "PRN")]
+recommended_individuals
+
+```
+
+```
+
+
